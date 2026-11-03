@@ -17,7 +17,7 @@ export async function runStructuredAgent<T>(opts: {
   data: unknown;
   schema: z.ZodType<T>;
 }): Promise<{ output: T; model: string }> {
-  const apiKey = process.env.LOVABLE_API_KEY;
+  const apiKey = process.env['LOVABLE_API_KEY'];
   if (!apiKey) throw new AgentError("AI is not configured");
   let runId: string | undefined;
   const provider = createOpenAI({

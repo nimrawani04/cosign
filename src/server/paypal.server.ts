@@ -3,13 +3,13 @@ const BASE = "https://api-m.sandbox.paypal.com";
 let cached: { token: string; exp: number } | null = null;
 
 export function paypalConfigured() {
-  return Boolean(process.env.PAYPAL_CLIENT_ID && process.env.PAYPAL_CLIENT_SECRET);
+  return Boolean(process.env['PAYPAL_CLIENT_ID'] && process.env['PAYPAL_CLIENT_SECRET']);
 }
 
 async function token() {
   if (cached && cached.exp > Date.now() + 60_000) return cached.token;
-  const id = process.env.PAYPAL_CLIENT_ID;
-  const secret = process.env.PAYPAL_CLIENT_SECRET;
+  const id = process.env['PAYPAL_CLIENT_ID'];
+  const secret = process.env['PAYPAL_CLIENT_SECRET'];
   if (!id || !secret) throw new Error("PayPal Sandbox credentials are not configured");
   const res = await fetch(`${BASE}/v1/oauth2/token`, {
     method: "POST",
@@ -76,7 +76,7 @@ export const captureOrder = (id: string) =>
   });
 
 export async function verifyWebhook(headers: Headers, event: unknown): Promise<boolean> {
-  const webhookId = process.env.PAYPAL_WEBHOOK_ID;
+  const webhookId = process.env['PAYPAL_WEBHOOK_ID'];
   if (!webhookId) return false;
   const r = await call<{ verification_status: string }>("/v1/notifications/verify-webhook-signature", {
     method: "POST",
