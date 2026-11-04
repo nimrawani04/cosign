@@ -3,10 +3,9 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Policy } from "@/lib/cosign/engine";
 
-const auth = [requireSupabaseAuth];
 
 export const listIntents = createServerFn({ method: "GET" })
-  .middleware(auth)
+  .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { data } = await context.supabase
       .from("purchase_intents")
@@ -17,7 +16,7 @@ export const listIntents = createServerFn({ method: "GET" })
   });
 
 export const getIntent = createServerFn({ method: "GET" })
-  .middleware(auth)
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: { id: string }) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const sb = context.supabase;
@@ -45,7 +44,7 @@ export const getIntent = createServerFn({ method: "GET" })
   });
 
 export const listMerchants = createServerFn({ method: "GET" })
-  .middleware(auth)
+  .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { data } = await context.supabase.from("merchants").select("id, name, trusted").order("name");
     return data ?? [];
@@ -63,7 +62,7 @@ const formSchema = z.object({
 });
 
 export const createIntent = createServerFn({ method: "POST" })
-  .middleware(auth)
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: z.infer<typeof formSchema>) => formSchema.parse(d))
   .handler(async ({ data, context }) => {
     const { draftIntent } = await import("./pipeline.server");
@@ -84,7 +83,7 @@ const policySchema = z.object({
 });
 
 export const confirmPolicy = createServerFn({ method: "POST" })
-  .middleware(auth)
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: { intentId: string; policy: Policy }) =>
     z.object({ intentId: z.string().uuid(), policy: policySchema }).parse(d) as { intentId: string; policy: Policy })
   .handler(async ({ data, context }) => {
@@ -93,7 +92,7 @@ export const confirmPolicy = createServerFn({ method: "POST" })
   });
 
 export const runAnalysis = createServerFn({ method: "POST" })
-  .middleware(auth)
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: { intentId: string }) => z.object({ intentId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const { analyze } = await import("./pipeline.server");
@@ -102,7 +101,7 @@ export const runAnalysis = createServerFn({ method: "POST" })
   });
 
 export const runLab = createServerFn({ method: "POST" })
-  .middleware(auth)
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: { fixture: string }) => z.object({ fixture: z.string().max(50) }).parse(d))
   .handler(async ({ data, context }) => {
     const { runSimulation } = await import("./pipeline.server");
@@ -110,7 +109,7 @@ export const runLab = createServerFn({ method: "POST" })
   });
 
 export const approveAndPay = createServerFn({ method: "POST" })
-  .middleware(auth)
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: { proposalId: string }) => z.object({ proposalId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const { revalidate, audit } = await import("./pipeline.server");
@@ -143,7 +142,7 @@ export const approveAndPay = createServerFn({ method: "POST" })
   });
 
 export const getLabFixtures = createServerFn({ method: "GET" })
-  .middleware(auth)
+  .middleware([requireSupabaseAuth])
   .handler(async () => {
     const { FIXTURES, DEMO_REQUEST } = await import("./pipeline.server");
     return { request: DEMO_REQUEST, fixtures: Object.entries(FIXTURES).map(([id, f]) => ({ id, label: f.label, sku: f.sku })) };
