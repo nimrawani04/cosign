@@ -147,3 +147,12 @@ export const getLabFixtures = createServerFn({ method: "GET" })
     const { FIXTURES, DEMO_REQUEST } = await import("@/server/pipeline.server");
     return { request: DEMO_REQUEST, fixtures: Object.entries(FIXTURES).map(([id, f]) => ({ id, label: f.label, sku: f.sku })) };
   });
+
+export const scanListingScreenshot = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { intentId: string; image: string }) =>
+    z.object({ intentId: z.string().uuid(), image: z.string().regex(/^data:image\/(png|jpeg|webp|gif);base64,/).max(7_000_000) }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { scanListing } = await import("@/server/pipeline.server");
+    return scanListing(context.userId, data.intentId, data.image);
+  });
