@@ -45,15 +45,22 @@ function AuthPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="w-full max-w-sm space-y-6 border border-border bg-card p-8">
+      <div className="w-full max-w-sm space-y-6 rounded-2xl border border-border bg-card p-8 shadow-lg">
         <div>
           <p className="font-mono text-xs uppercase tracking-widest text-primary">CoSign</p>
           <h1 className="mt-2 font-display text-3xl">{mode === "in" ? "Sign in" : "Create account"}</h1>
         </div>
-        <Button variant="outline" className="w-full" onClick={async () => {
-          const r = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin + "/auth" });
-          if (r && "error" in r && r.error) toast.error(String((r.error as Error).message ?? r.error));
-        }}>Continue with Google</Button>
+        <div className="space-y-2">
+          {(["google", "lovable"] as const).map((p) => (
+            <Button key={p} variant="outline" className="w-full rounded-full" onClick={async () => {
+              const r = await lovable.auth.signInWithOAuth(p, { redirect_uri: window.location.origin });
+              if (r.error) { toast.error(r.error.message); return; }
+              if (r.redirected) return;
+              nav({ to: "/dashboard" });
+            }}>Continue with {p === "google" ? "Google" : "Lovable"}</Button>
+          ))}
+        </div>
+        <div className="flex items-center gap-3 text-xs text-muted-foreground"><span className="h-px flex-1 bg-border" />or<span className="h-px flex-1 bg-border" /></div>
         <form onSubmit={submit} className="space-y-3">
           <div className="space-y-1"><Label htmlFor="email">Email</Label><Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} /></div>
           <div className="space-y-1"><Label htmlFor="pw">Password</Label><Input id="pw" type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} /></div>
