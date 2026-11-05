@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { approveAndPay, confirmPolicy, getIntent, runAnalysis } from "@/server/cosign.functions";
+import { approveAndPay, confirmPolicy, getIntent, runAnalysis } from "@/lib/api/cosign.functions";
 import { formatMoney, type EngineCheck, type Policy } from "@/lib/cosign/engine";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
