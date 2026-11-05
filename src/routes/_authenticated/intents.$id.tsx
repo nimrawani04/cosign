@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { ListingScan } from "@/components/ListingScan";
 
 export const Route = createFileRoute("/_authenticated/intents/$id")({
   head: () => ({ meta: [{ title: "Purchase request — CoSign" }, { name: "description", content: "Review agent proposals and approve payment." }] }),
@@ -71,6 +72,8 @@ function IntentPage() {
           </div>
         </section>
       )}
+
+      {intent.current_policy_version && !intent.is_simulation && <ListingScan intentId={id} />}
 
       {live.length > 0 && (
         <section>
