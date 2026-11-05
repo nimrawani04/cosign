@@ -249,8 +249,16 @@ export async function scanListing(userId: string, intentId: string, imageDataUrl
     unit_price: n, shipping_cost: n, other_fees: z.array(z.object({ label: z.string(), amount: z.number() })),
     quantity: n, return_days: n, specs: z.array(z.string()), suspicious_text: z.array(z.string()), notes: z.string().nullable(),
   });
-  const { output } = await tracked(userId, intentId, "guardian" as Agent, null, () =>
-    runStructuredAgent({ instructions: LISTING_PROMPT, schema, imageDataUrl, data: { task: "extract listing terms", policy_currency: policy.currency } }));
+  const start = Date.now();
+  let output: z.infer<typeof schema>;
+  try {
+    const r = await runStructuredAgent({ instructions: LISTING_PROMPT, schema, imageDataUrl, data: { task: "extract listing terms", policy_currency: policy.currency } });
+    output = r.output;
+    await db.from("agent_runs").insert({ user_id: userId, intent_id: intentId, agent: "guardian", status: "success", model: `${r.model} · listing-scan`, output: output as never, duration_ms: Date.now() - start });
+  } catch (e) {
+    await db.from("agent_runs").insert({ user_id: userId, intent_id: intentId, agent: "guardian", status: "failed", error: (e as Error).message, duration_ms: Date.now() - start });
+    throw new Error(`Couldn't read the screenshot: ${(e as Error).message}`);
+  }
   const { data: merchants } = await db.from("merchants").select("name").in("id", policy.allowed_merchant_ids.length ? policy.allowed_merchant_ids : ["00000000-0000-0000-0000-000000000000"]);
   const result = assessListing(output, policy, (merchants ?? []).map((m) => m.name));
   await audit(userId, intentId, "listing.scanned", { flags: result.flags.map((f) => f.id), total_minor: result.total_minor });
