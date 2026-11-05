@@ -65,7 +65,7 @@ export const createIntent = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: z.infer<typeof formSchema>) => formSchema.parse(d))
   .handler(async ({ data, context }) => {
-    const { draftIntent } = await import("./pipeline.server");
+    const { draftIntent } = await import("@/server/pipeline.server");
     return { id: await draftIntent(context.userId, data.raw, data.form) };
   });
 
@@ -87,7 +87,7 @@ export const confirmPolicy = createServerFn({ method: "POST" })
   .inputValidator((d: { intentId: string; policy: Policy }) =>
     z.object({ intentId: z.string().uuid(), policy: policySchema }).parse(d) as { intentId: string; policy: Policy })
   .handler(async ({ data, context }) => {
-    const { lockPolicy } = await import("./pipeline.server");
+    const { lockPolicy } = await import("@/server/pipeline.server");
     return { version: await lockPolicy(context.userId, data.intentId, data.policy) };
   });
 
@@ -95,7 +95,7 @@ export const runAnalysis = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { intentId: string }) => z.object({ intentId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    const { analyze } = await import("./pipeline.server");
+    const { analyze } = await import("@/server/pipeline.server");
     await analyze(context.userId, data.intentId);
     return { ok: true };
   });
@@ -104,7 +104,7 @@ export const runLab = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { fixture: string }) => z.object({ fixture: z.string().max(50) }).parse(d))
   .handler(async ({ data, context }) => {
-    const { runSimulation } = await import("./pipeline.server");
+    const { runSimulation } = await import("@/server/pipeline.server");
     return { id: await runSimulation(context.userId, data.fixture) };
   });
 
@@ -112,7 +112,7 @@ export const approveAndPay = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { proposalId: string }) => z.object({ proposalId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    const { revalidate, audit } = await import("./pipeline.server");
+    const { revalidate, audit } = await import("@/server/pipeline.server");
     const { supabaseAdmin: db } = await import("@/integrations/supabase/client.server");
     const r = await revalidate(context.userId, data.proposalId);
     if (!r.eligible) {
@@ -122,7 +122,7 @@ export const approveAndPay = createServerFn({ method: "POST" })
     const { data: existing } = await db.from("payments").select("id").eq("proposal_id", data.proposalId).maybeSingle();
     if (existing) return { ok: true as const, mode: "already_paid" };
 
-    const { paypalConfigured, createOrder } = await import("./paypal.server");
+    const { paypalConfigured, createOrder } = await import("@/server/paypal.server");
     let orderId: string | null = null;
     let status = "simulated_capture";
     if (paypalConfigured() && !r.isSimulation) {
@@ -144,6 +144,6 @@ export const approveAndPay = createServerFn({ method: "POST" })
 export const getLabFixtures = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async () => {
-    const { FIXTURES, DEMO_REQUEST } = await import("./pipeline.server");
+    const { FIXTURES, DEMO_REQUEST } = await import("@/server/pipeline.server");
     return { request: DEMO_REQUEST, fixtures: Object.entries(FIXTURES).map(([id, f]) => ({ id, label: f.label, sku: f.sku })) };
   });
