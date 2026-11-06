@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "events": {
+    "project.listing_screenshot_uploaded": {
+      "event_schema_version": 1,
+      "description": "Shopper picked listing screenshot(s) to check (single) or compare.",
+      "privacy": {
+        "contains_pii": false,
+        "purpose": "product_analytics"
+      },
+      "properties_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "mode",
+          "count"
+        ],
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "single",
+              "compare"
+            ]
+          },
+          "count": {
+            "type": "integer"
+          }
+        }
+      }
+    }
+  }
+}
