@@ -53,3 +53,16 @@ export function assessListing(t: ListingTerms, policy: Policy, merchantNames: st
     flags.push({ id: "injection", severity: "HIGH", label: "Suspicious instructions in listing", detail: s });
   return { flags, total_minor };
 }
+
+// Fit score 0-100: HIGH −40, MEDIUM −15, LOW −5. Ties broken by lower total.
+export function fitScore(flags: ListingFlag[]): number {
+  const p = flags.reduce((s, f) => s + (f.severity === "HIGH" ? 40 : f.severity === "MEDIUM" ? 15 : 5), 0);
+  return Math.max(0, 100 - p);
+}
+
+export function rankListings<T extends { flags: ListingFlag[]; total_minor: number | null }>(items: T[]): (T & { score: number; rank: number })[] {
+  return items
+    .map((x) => ({ ...x, score: fitScore(x.flags) }))
+    .sort((a, b) => b.score - a.score || (a.total_minor ?? Infinity) - (b.total_minor ?? Infinity))
+    .map((x, i) => ({ ...x, rank: i + 1 }));
+}
