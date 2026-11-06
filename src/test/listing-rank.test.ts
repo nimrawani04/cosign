@@ -7,6 +7,6 @@ describe("listing ranking", () => {
   it("ranks fewer risks first, cheaper on ties", () => {
     const r = rankListings([{ n: "a", flags: [H], total_minor: 100 }, { n: "b", flags: [], total_minor: 900 }, { n: "c", flags: [], total_minor: 500 }]);
     expect(r.map((x) => x.n)).toEqual(["c", "b", "a"]);
-    expect(r[0].rank).toBe(1);
+    expect(r[0]?.rank).toBe(1);
   });
 });
