@@ -15,6 +15,9 @@ dist-ssr
 .tanstack/**
 .nitro
 *.local
+local.properties
+**/.gradle/
+**/build/
 
 # Wrangler / Cloudflare
 .wrangler/

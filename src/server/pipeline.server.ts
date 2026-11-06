@@ -159,6 +159,33 @@ async function evaluateProposal(userId: string, intentId: string, polRow: { id: 
   await audit(userId, intentId, "proposal.evaluated", { product: product.sku, guardian: guardian?.decision ?? null, pi: pi?.recommendation ?? null, engine: result.decision }, prop.id);
 }
 
+export async function createListingProposal(userId: string, intentId: string, imageDataUrl: string) {
+  const scan = await scanListing(userId, intentId, imageDataUrl);
+  if (scan.flags.some((f) => f.severity === "HIGH")) throw new Error("This listing has high-risk policy flags and cannot be co-signed.");
+  if (!scan.terms.product_name || !scan.terms.merchant_name || scan.terms.unit_price == null) throw new Error("The listing must show its product, seller and price before it can be co-signed.");
+  const { intent, pol, policy } = await currentPolicy(intentId);
+  const { data: products } = await db.from("products").select("*, merchants(*)").eq("category", policy.product_category);
+  const match = products?.find((x) => {
+    const merchant = (x as unknown as { merchants: { name: string; trusted: boolean } }).merchants;
+    return x.name.toLowerCase() === scan.terms.product_name!.toLowerCase().trim()
+      && merchant?.name.toLowerCase() === scan.terms.merchant_name!.toLowerCase().trim()
+      && merchant.trusted
+      && x.currency.toUpperCase() === (scan.terms.currency ?? policy.currency).toUpperCase()
+      && Math.abs(x.price_minor - Math.round(scan.terms.unit_price! * 100)) <= 1
+      && Math.abs(x.shipping_minor - Math.round((scan.terms.shipping_cost ?? 0) * 100)) <= 1;
+  });
+  if (!match) throw new Error("Could not match this screenshot to a trusted catalogue listing at the same price.");
+  const quantity = scan.terms.quantity ?? 1;
+  await evaluateProposal(userId, intentId, { id: pol.id, version: pol.version }, policy, match.id, {
+    product_id: match.id, merchant_id: match.merchant_id, unit_price_minor: Math.round(scan.terms.unit_price * 100),
+    shipping_minor: Math.round((scan.terms.shipping_cost ?? 0) * 100), currency: scan.terms.currency ?? policy.currency,
+  }, "Buyer-selected screenshot listing; rechecked against trusted catalogue", 1);
+  await db.from("purchase_intents").update({ status: "analyzed", updated_at: new Date().toISOString() }).eq("id", intent.id);
+  const { data } = await db.from("proposals").select("id, eligible").eq("intent_id", intentId).eq("product_id", match.id).order("created_at", { ascending: false }).limit(1).maybeSingle();
+  if (!data) throw new Error("Could not create a reviewed proposal for this listing.");
+  return data;
+}
+
 export async function analyze(userId: string, intentId: string) {
   await assertOwner("purchase_intents", intentId, userId);
   const { pol, policy } = await currentPolicy(intentId);

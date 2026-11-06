@@ -1,7 +1,9 @@
 import { useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { rankListingScreenshots } from "@/lib/api/cosign.functions";
+import { approveAndPay, createProposalFromListing, rankListingScreenshots } from "@/lib/api/cosign.functions";
 import { formatMoney } from "@/lib/cosign/engine";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +15,10 @@ const read = (f: File) => new Promise<string>((res, rej) => { const r = new File
 
 export function ListingRank({ intentId }: { intentId: string }) {
   const rank = useServerFn(rankListingScreenshots);
+  const propose = useServerFn(createProposalFromListing);
+  const pay = useServerFn(approveAndPay);
+  const nav = useNavigate();
+  const qc = useQueryClient();
   const [imgs, setImgs] = useState<Img[]>([]);
   const [busy, setBusy] = useState(false);
   const [res, setRes] = useState<Result | null>(null);
@@ -41,6 +47,27 @@ export function ListingRank({ intentId }: { intentId: string }) {
   }
 
   const src = (name: string) => imgs.find((i) => i.name === name)?.image;
+  async function cosign(name: string) {
+    const image = src(name);
+    if (!image) return;
+    setBusy(true);
+    try {
+      const proposal = await propose({ data: { intentId, image } });
+      await qc.invalidateQueries({ queryKey: ["intent", intentId] });
+      if (!proposal.eligible) {
+        toast.error("The listing did not pass all co-sign checks. Review its security findings.");
+        await nav({ to: "/intents/$id", params: { id: intentId } });
+        return;
+      }
+      const result = await pay({ data: { proposalId: proposal.id } });
+      if (result.ok && "approvalUrl" in result && result.approvalUrl) { window.location.assign(result.approvalUrl); return; }
+      if (!result.ok) throw new Error("The listing failed its final policy revalidation.");
+      toast.success("Listing co-signed.");
+      await qc.invalidateQueries({ queryKey: ["dashboard"] });
+      await nav({ to: "/intents/$id", params: { id: intentId } });
+    } catch (e) { toast.error((e as Error).message); }
+    finally { setBusy(false); }
+  }
   return (
     <section className="rounded-2xl border border-border bg-card p-6">
       <h2 className="font-display text-2xl">Compare listing screenshots</h2>
@@ -70,6 +97,9 @@ export function ListingRank({ intentId }: { intentId: string }) {
                 {r.flags.length === 0
                   ? <p className="mt-2 text-primary">Matches your policy.</p>
                   : <ul className="mt-2 space-y-1">{r.flags.map((f, i) => <li key={i}><Badge variant={f.severity === "HIGH" ? "destructive" : "outline"} className="mr-2">{f.severity}</Badge>{f.label} <span className="text-muted-foreground">— {f.detail}</span></li>)}</ul>}
+                <Button className="mt-3" disabled={busy || !r.ok || r.flags.some((f) => f.severity === "HIGH")} onClick={() => cosign(r.name)}>
+                  {busy ? "Reviewing listing…" : "Co-sign this listing"}
+                </Button>
               </div>
             </li>
           ))}

@@ -1,4 +1,6 @@
-const BASE = "https://api-m.sandbox.paypal.com";
+const BASE = process.env['PAYPAL_ENVIRONMENT'] === "live"
+  ? "https://api-m.paypal.com"
+  : "https://api-m.sandbox.paypal.com";
 
 let cached: { token: string; exp: number } | null = null;
 
@@ -6,11 +8,15 @@ export function paypalConfigured() {
   return Boolean(process.env['PAYPAL_CLIENT_ID'] && process.env['PAYPAL_CLIENT_SECRET']);
 }
 
+export function paypalIsLive() {
+  return process.env['PAYPAL_ENVIRONMENT'] === "live";
+}
+
 async function token() {
   if (cached && cached.exp > Date.now() + 60_000) return cached.token;
   const id = process.env['PAYPAL_CLIENT_ID'];
   const secret = process.env['PAYPAL_CLIENT_SECRET'];
-  if (!id || !secret) throw new Error("PayPal Sandbox credentials are not configured");
+  if (!id || !secret) throw new Error("PayPal credentials are not configured");
   const res = await fetch(`${BASE}/v1/oauth2/token`, {
     method: "POST",
     headers: { Authorization: `Basic ${btoa(`${id}:${secret}`)}`, "Content-Type": "application/x-www-form-urlencoded" },
@@ -42,6 +48,7 @@ export const toValue = (minor: number) => (minor / 100).toFixed(2);
 export type PaypalOrder = {
   id: string;
   status: string;
+  links?: { href: string; rel: string; method: string }[];
   purchase_units?: {
     reference_id?: string;
     amount?: { currency_code: string; value: string };
@@ -49,12 +56,13 @@ export type PaypalOrder = {
   }[];
 };
 
-export function createOrder(p: { proposalId: string; amountMinor: number; currency: string; description: string }) {
+export function createOrder(p: { proposalId: string; amountMinor: number; currency: string; description: string; returnUrl: string; cancelUrl: string }) {
   return call<PaypalOrder>("/v2/checkout/orders", {
     method: "POST",
     requestId: `cosign-order-${p.proposalId}`,
     body: JSON.stringify({
       intent: "CAPTURE",
+      application_context: { return_url: p.returnUrl, cancel_url: p.cancelUrl, user_action: "PAY_NOW" },
       purchase_units: [
         {
           reference_id: p.proposalId,
