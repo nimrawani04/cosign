@@ -56,6 +56,30 @@
           }
         }
       }
+    },
+    "project.proposal_cosigned": {
+      "event_schema_version": 1,
+      "description": "Shopper co-signed and paid for a ranked proposal (rank = its position).",
+      "privacy": {
+        "contains_pii": false,
+        "purpose": "product_analytics"
+      },
+      "properties_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "rank",
+          "proposal_count"
+        ],
+        "properties": {
+          "rank": {
+            "type": "integer"
+          },
+          "proposal_count": {
+            "type": "integer"
+          }
+        }
+      }
     }
   }
 }
