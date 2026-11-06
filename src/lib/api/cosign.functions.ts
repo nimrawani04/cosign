@@ -156,3 +156,25 @@ export const scanListingScreenshot = createServerFn({ method: "POST" })
     const { scanListing } = await import("@/server/pipeline.server");
     return scanListing(context.userId, data.intentId, data.image);
   });
+
+export const rankListingScreenshots = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { intentId: string; images: { name: string; image: string }[] }) =>
+    z.object({
+      intentId: z.string().uuid(),
+      images: z.array(z.object({ name: z.string().max(200), image: z.string().regex(/^data:image\/(png|jpeg|webp|gif);base64,/).max(5_000_000) })).min(2).max(6),
+    }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { scanListing } = await import("@/server/pipeline.server");
+    const { rankListings } = await import("@/lib/cosign/listing");
+    const results = [];
+    for (const img of data.images) {
+      try {
+        const r = await scanListing(context.userId, data.intentId, img.image);
+        results.push({ name: img.name, ok: true as const, ...r });
+      } catch (e) {
+        results.push({ name: img.name, ok: false as const, error: (e as Error).message, terms: null, flags: [{ id: "unreadable", severity: "HIGH" as const, label: "Couldn't read screenshot", detail: (e as Error).message }], total_minor: null, currency: "" });
+      }
+    }
+    return rankListings(results);
+  });
