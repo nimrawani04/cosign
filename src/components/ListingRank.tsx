@@ -26,11 +26,16 @@ export function ListingRank({ intentId }: { intentId: string }) {
     }
     setImgs(await Promise.all(files.map(async (f) => ({ name: f.name, image: await read(f) }))));
     setRes(null);
+    if (files.length) window.__lovableEvents?.track?.("project.listing_screenshot_uploaded", { mode: "compare", count: files.length });
   }
 
   async function run() {
     setBusy(true);
-    try { setRes(await rank({ data: { intentId, images: imgs } })); }
+    try {
+      const r = await rank({ data: { intentId, images: imgs } });
+      setRes(r);
+      window.__lovableEvents?.track?.("project.listing_comparison_completed", { listing_count: r.length, top_score: r[0]?.score ?? 0, unreadable_count: r.filter((x) => !x.ok).length });
+    }
     catch (e) { toast.error((e as Error).message); }
     finally { setBusy(false); }
   }

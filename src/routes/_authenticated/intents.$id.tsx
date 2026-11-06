@@ -101,7 +101,7 @@ function IntentPage() {
                   {paid ? <p className="mt-4 text-sm font-medium text-primary">Paid · {paid.paypal_order_id ? `PayPal sandbox ${paid.paypal_order_id}` : "simulated sandbox capture"}</p> : (
                     <Button className="mt-4 w-full" disabled={!p.eligible || !!busy || p.status === "paid"} onClick={() => act(p.id, async () => {
                       const r = await pay({ data: { proposalId: p.id } });
-                      if (r.ok) toast.success("Payment approved"); else toast.error("Blocked at re-validation");
+                      if (r.ok) { toast.success("Payment approved"); window.__lovableEvents?.track?.("project.proposal_cosigned", { rank: p.rank, proposal_count: live.length }); } else toast.error("Blocked at re-validation");
                     })}>{busy === p.id ? "Re-validating…" : p.eligible ? "Co-sign & pay" : "Blocked"}</Button>
                   )}
                 </article>

@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "events": {
+    "project.listing_comparison_completed": {
+      "event_schema_version": 1,
+      "description": "A multi-screenshot listing comparison returned a ranking.",
+      "privacy": {
+        "contains_pii": false,
+        "purpose": "product_analytics"
+      },
+      "properties_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "listing_count",
+          "top_score",
+          "unreadable_count"
+        ],
+        "properties": {
+          "listing_count": {
+            "type": "integer"
+          },
+          "top_score": {
+            "type": "number"
+          },
+          "unreadable_count": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    "project.listing_screenshot_uploaded": {
+      "event_schema_version": 1,
+      "description": "Shopper picked listing screenshot(s) to check (single) or compare.",
+      "privacy": {
+        "contains_pii": false,
+        "purpose": "product_analytics"
+      },
+      "properties_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "mode",
+          "count"
+        ],
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "single",
+              "compare"
+            ]
+          },
+          "count": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    "project.proposal_cosigned": {
+      "event_schema_version": 1,
+      "description": "Shopper co-signed and paid for a ranked proposal (rank = its position).",
+      "privacy": {
+        "contains_pii": false,
+        "purpose": "product_analytics"
+      },
+      "properties_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "rank",
+          "proposal_count"
+        ],
+        "properties": {
+          "rank": {
+            "type": "integer"
+          },
+          "proposal_count": {
+            "type": "integer"
+          }
+        }
+      }
+    }
+  }
+}

@@ -19,7 +19,7 @@ export function ListingScan({ intentId }: { intentId: string }) {
     if (!/^image\/(png|jpeg|webp|gif)$/.test(f.type)) { toast.error("Use a PNG, JPG, WebP or GIF image."); return; }
     if (f.size > 5_000_000) { toast.error("Image must be under 5 MB."); return; }
     const r = new FileReader();
-    r.onload = () => { setPreview(r.result as string); setRes(null); };
+    r.onload = () => { setPreview(r.result as string); setRes(null); window.__lovableEvents?.track?.("project.listing_screenshot_uploaded", { mode: "single", count: 1 }); };
     r.readAsDataURL(f);
   }
 
